@@ -28,9 +28,11 @@ fn main() {
     let vertex_shader_src = r#"
         #version 460
         in vec2 position;
+        out vec2 my_attr;
         uniform float t;
         void main() {
             vec2 pos = position;
+            my_attr = position;
             pos.x += t;
             gl_Position = vec4(pos, 0.0, 1.0);
         }
@@ -38,9 +40,10 @@ fn main() {
 
     let fragment_shader_src = r#"
         #version 460
+        in vec2 my_attr;
         out vec4 color;
         void main() {
-            color = vec4(1.0, 0.0, 0.0, 1.0);
+            color = vec4(my_attr, 0.0, 1.0);
         }
     "#;
 
