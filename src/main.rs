@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate glium;
 
-use glium::Surface;
+use glium::{Surface, DrawParameters, PolygonMode, BackfaceCullingMode};
 
 fn main() {
     use glium::glutin;
@@ -21,14 +21,18 @@ fn main() {
     let vertex2 = Vertex { position: [ 0.0,  0.5] };
     let vertex3 = Vertex { position: [ 0.5, -0.25] };
     let mut shape = vec![vertex1, vertex2, vertex3];
+    let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
 
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
     let vertex_shader_src = r#"
         #version 460
         in vec2 position;
+        uniform float t;
         void main() {
-            gl_Position = vec4(position, 0.0, 1.0);
+            vec2 pos = position;
+            pos.x += t;
+            gl_Position = vec4(pos, 0.0, 1.0);
         }
     "#;
 
@@ -63,16 +67,18 @@ fn main() {
 
         let elapsed_millis = std::time::Instant::now().duration_since(start).as_millis() as u64;
 
-        let offs_x = (elapsed_millis % 1000) as f32 / 1000.0;
-
-        shape[0] = Vertex { position: [-0.5 + offs_x, -0.5] };
-        let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
+        let offs_x = (elapsed_millis % 1000) as f32 / 1000.0 - 0.5;
 
         let mut target = display.draw();
         target.clear_color(0., 0., 1., 1.);
 
-        target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms, &Default::default()).unwrap();
-
+        let draw_parameters: DrawParameters = DrawParameters {
+            // polygon_mode: PolygonMode::Line,
+            // line_width: Some(1.0),
+            // backface_culling: BackfaceCullingMode::CullCounterClockwise,
+            ..Default::default()
+        };
+        target.draw(&vertex_buffer, &indices, &program, &uniform! {t: offs_x}, &draw_parameters).unwrap();
 
         target.finish().unwrap();
 
