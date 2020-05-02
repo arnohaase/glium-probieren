@@ -33,7 +33,7 @@ fn main() {
     "#;
 
     let fragment_shader_src = r#"
-        #version 140
+        #version 460
         out vec4 color;
         void main() {
             color = vec4(1.0, 0.0, 0.0, 1.0);
@@ -42,13 +42,13 @@ fn main() {
 
     let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
 
-    let mut x: u32 = 0;
+    let start = std::time::Instant::now();
 
     event_loop.run(move |ev, _, control_flow| {
 
-
         let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
         *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
+        // *control_flow = glutin::event_loop::ControlFlow::Poll;
 
         match ev {
             glutin::event::Event::WindowEvent { event, .. } => match event {
@@ -61,11 +61,9 @@ fn main() {
             _ => (),
         }
 
-        x += 1;
-        if x >= 100 {
-            x = 0;
-        }
-        let offs_x = x as f32 / 100.0;
+        let elapsed_millis = std::time::Instant::now().duration_since(start).as_millis() as u64;
+
+        let offs_x = (elapsed_millis % 1000) as f32 / 1000.0;
 
         shape[0] = Vertex { position: [-0.5 + offs_x, -0.5] };
         let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
