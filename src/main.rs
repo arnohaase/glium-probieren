@@ -7,19 +7,31 @@ use glium::uniforms::{AsUniformValue, UniformValue};
 use std::intrinsics::transmute;
 
 
-fn main() {
-    //TODO efficient implicit conversion
-    fn as_uniform_value(m: &Matrix4<f32>) -> [[f32;4];4] {
-        [
-            [m.x.x, m.x.y, m.x.z, m.x.w],
-            [m.y.x, m.y.y, m.y.z, m.y.w],
-            [m.z.x, m.z.y, m.z.z, m.z.w],
-            [m.w.x, m.w.y, m.w.z, m.w.w]
-        ]
-        // UniformValue::Mat4(mat)
+struct GlslMatrix4 <'a> {
+    m: &'a Matrix4<f32>
+}
+impl <'a> GlslMatrix4 <'a> {
+    pub fn of(m: &'a Matrix4<f32>) -> GlslMatrix4 {
+        GlslMatrix4 {m}
     }
+}
+impl <'a> AsUniformValue for GlslMatrix4<'a> {
+    fn as_uniform_value(&self) -> UniformValue {
+        //TODO avoid copying?
+        UniformValue::Mat4(
+            [
+                [self.m.x.x, self.m.x.y, self.m.x.z, self.m.x.w],
+                [self.m.y.x, self.m.y.y, self.m.y.z, self.m.y.w],
+                [self.m.z.x, self.m.z.y, self.m.z.z, self.m.z.w],
+                [self.m.w.x, self.m.w.y, self.m.w.z, self.m.w.w]
+            ]
+        )
+    }
+}
 
 
+
+fn main() {
 
     use glium::glutin;
 
@@ -85,7 +97,7 @@ fn main() {
 
         let elapsed_millis = std::time::Instant::now().duration_since(start).as_millis() as u64;
 
-        let offs_x = (elapsed_millis % 1000) as f32 / 1000.0 - 0.5;
+        let t = (elapsed_millis % 1000) as f32 / 1000.0 - 0.5;
 
         let mut target = display.draw();
         target.clear_color(0., 0., 1., 1.);
@@ -97,11 +109,13 @@ fn main() {
             ..Default::default()
         };
 
-        let matrix = Matrix4::from_translation(Vector3::unit_x() * offs_x);
+        let matrix = Matrix4::from_translation(Vector3::unit_x() * t);
+        let matrix = matrix * Matrix4::from_angle_z(Rad { 0: t});
 
         target.draw(&vertex_buffer,
                     &indices, &program,
-                    &uniform! {matrix: as_uniform_value(&matrix)},
+                    &uniform! {matrix: GlslMatrix4::of(&matrix)},
+                    // &uniform! {matrix: as_uniform_value(&matrix)},
                     &draw_parameters
         ).unwrap();
 
