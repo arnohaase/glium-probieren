@@ -2,8 +2,25 @@
 extern crate glium;
 
 use glium::{Surface, DrawParameters, PolygonMode, BackfaceCullingMode};
+use cgmath::*;
+use glium::uniforms::{AsUniformValue, UniformValue};
+use std::intrinsics::transmute;
+
 
 fn main() {
+    //TODO efficient implicit conversion
+    fn as_uniform_value(m: &Matrix4<f32>) -> [[f32;4];4] {
+        [
+            [m.x.x, m.x.y, m.x.z, m.x.w],
+            [m.y.x, m.y.y, m.y.z, m.y.w],
+            [m.z.x, m.z.y, m.z.z, m.z.w],
+            [m.w.x, m.w.y, m.w.z, m.w.w]
+        ]
+        // UniformValue::Mat4(mat)
+    }
+
+
+
     use glium::glutin;
 
     let mut event_loop = glutin::event_loop::EventLoop::new();
@@ -26,20 +43,18 @@ fn main() {
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
     let vertex_shader_src = r#"
-        #version 460
+        #version 140
         in vec2 position;
         out vec2 my_attr;
-        uniform float t;
+        uniform mat4 matrix;
         void main() {
-            vec2 pos = position;
             my_attr = position;
-            pos.x += t;
-            gl_Position = vec4(pos, 0.0, 1.0);
+            gl_Position = matrix*vec4(position, 0.0, 1.0);
         }
     "#;
 
     let fragment_shader_src = r#"
-        #version 460
+        #version 140
         in vec2 my_attr;
         out vec4 color;
         void main() {
@@ -81,7 +96,14 @@ fn main() {
             // backface_culling: BackfaceCullingMode::CullCounterClockwise,
             ..Default::default()
         };
-        target.draw(&vertex_buffer, &indices, &program, &uniform! {t: offs_x}, &draw_parameters).unwrap();
+
+        let matrix = Matrix4::from_translation(Vector3::unit_x() * offs_x);
+
+        target.draw(&vertex_buffer,
+                    &indices, &program,
+                    &uniform! {matrix: as_uniform_value(&matrix)},
+                    &draw_parameters
+        ).unwrap();
 
         target.finish().unwrap();
 
